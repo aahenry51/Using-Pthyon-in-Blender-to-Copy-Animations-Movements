@@ -1,0 +1,423 @@
+import bpy
+from mathutils import Matrix
+from mathutils import Vector, Quaternion
+import os.path
+from os import path
+
+context = bpy.context
+scene = context.scene
+RobloxRig = bpy.context.scene.objects['__Rig'] 
+
+
+## Get Each Bone
+R_Bones = RobloxRig.pose.bones
+
+# 0  - HumanoidRootPart
+# 1  - LowerTorso
+# 2  - RightUpperLeg
+# 3  - RightLowerLeg
+# 4  - RightFoot
+# 5  - LeftUpperLeg
+# 6  - LeftLowerLeg
+# 7  - LeftFoot
+# 8  - UpperTorso
+# 9  - RightUpperArm
+# 10 - RightLowerArm
+# 11 - RightHand
+# 12 - LeftUpperArm
+# 13 - LeftLowerArm
+# 14 - LeftHand
+# 15 - Head
+
+
+
+
+
+#for bone in R_Bones:
+   # print("Roblox Bone: " ,bone)
+
+ArrayCloudBonesOrig= [None] * 16
+ArrayCloudBones = [None] * 16
+
+CloudRig = bpy.context.scene.objects['Armature'] 
+
+A_Bones = CloudRig.pose.bones
+#for bone in A_Bones:
+    #print("Other Bone: " ,bone)
+    
+#bpy.ops.object.editmode_toggle()
+#bpy.ops.armature.bone_primitive_add()
+
+ArrayCloudBonesOrig[1] = "pelvis"
+ArrayCloudBonesOrig[2] = "thigh_r"
+ArrayCloudBonesOrig[3] = "calf_r"
+ArrayCloudBonesOrig[4] = "foot_r"
+
+ArrayCloudBonesOrig[5] = "thigh_l"
+ArrayCloudBonesOrig[6] = "calf_l"
+ArrayCloudBonesOrig[7] = "foot_l"
+
+ArrayCloudBonesOrig[8] = "spine_02"
+
+
+
+ArrayCloudBonesOrig[9] = "upperarm_r"
+ArrayCloudBonesOrig[10] = "lowerarm_r"
+ArrayCloudBonesOrig[11] = "hand_r"
+
+ArrayCloudBonesOrig[12] = "upperarm_l"
+ArrayCloudBonesOrig[13] = "lowerarm_l"
+ArrayCloudBonesOrig[14] = "hand_l"
+
+ArrayCloudBonesOrig[15] = "head"
+
+
+# 1  - LowerTorso
+ArrayCloudBones[1] = "LowerTorso"
+# 2  - RightUpperLeg
+ArrayCloudBones[2] = "RightUpperLeg"
+# 3  - RightLowerLeg
+ArrayCloudBones[3] = "RightLowerLeg"
+# 4  - RightFoot
+ArrayCloudBones[4] = "RightFoot"
+# 5  - LeftUpperLeg
+ArrayCloudBones[5] = "LeftUpperLeg"
+# 6  - LeftLowerLeg
+ArrayCloudBones[6] = "LeftLowerLeg"
+# 7  - LeftFoot
+ArrayCloudBones[7] = "LeftFoot"
+# 8  - UpperTorso
+ArrayCloudBones[8] = "UpperTorso"
+# 9  - RightUpperArm
+ArrayCloudBones[9] = "RightUpperArm"
+# 10 - RightLowerArm
+ArrayCloudBones[10] = "RightLowerArm"
+# 11 - RightHand
+ArrayCloudBones[11] = "RightHand"
+# 12 - LeftUpperArm
+ArrayCloudBones[12] = "LeftUpperArm"
+# 13 - LeftLowerArm
+ArrayCloudBones[13] = "LeftLowerArm"
+# 14 - LeftHand
+ArrayCloudBones[14] = "LeftHand"
+# 15 - Head
+ArrayCloudBones[15] = "Head"
+
+def CopyBones(Armature1, Armature2):
+    
+    A_Bones = Armature1.pose.bones
+    A2_Bones = Armature2.pose.bones
+    
+    #x = 2
+    for x in ArrayCloudBonesOrig:
+        
+        if x:
+            boneSource = Armature1.pose.bones[x]
+            boneTarget = Armature2.pose.bones[x]
+            
+            bpy.context.view_layer.update()
+            #print("Other Bone: " ,boneTarget)
+            #tail = bpy.data.objects["Armature2"].location + A2_Bones[1].tail
+            #head = bpy.data.objects["Armature2"].location + A2_Bones[1].head
+
+            #print(tail, head)
+            
+            pb = boneTarget
+            mw = Armature2.convert_space(pose_bone=pb, 
+                    matrix=pb.matrix, 
+                    from_space='POSE', 
+                    to_space='WORLD')
+            
+            pb2 = boneSource
+            mw2 = Armature1.convert_space(pose_bone=pb2, 
+                    matrix=pb2.matrix, 
+                    from_space='POSE', 
+                    to_space='WORLD')
+            
+            loc, rot, scale = mw.decompose()
+            loc2, rot2, scale2 = mw2.decompose()
+            #print("BoneA2: " ,loc)
+            #print("BoneA: " ,loc2)
+            
+            mw.translation = loc2
+            
+            pb.matrix = Armature2.convert_space(pose_bone=pb, 
+                    matrix=mw, 
+                    from_space='WORLD', 
+                    to_space='POSE') 
+                    
+            bpy.context.view_layer.update()
+            snap_rotation(pb2, pb)
+
+    
+#ArrayNameOrig is the name of Bones in the armature to attach the new bones too
+#ArrayName is the new name of bones to create
+def AddBones(Rig,ArrayName,ArrayNameOrig):
+    
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+    
+    for x in range(1, 16):
+        
+        if ArrayCloudBonesOrig[x]:
+            ebs = Rig.data.edit_bones
+    
+            #Create new bone
+            eb = ebs.new(ArrayCloudBones[x])
+            
+            eb.head = (0, 1, 1)
+            Rig.data.edit_bones[ArrayCloudBones[x]].parent = Rig.data.edit_bones[ArrayCloudBonesOrig[x]]
+            eb.head = Rig.data.edit_bones[ArrayCloudBonesOrig[x]].head
+            eb.tail = Rig.data.edit_bones[ArrayCloudBonesOrig[x]].head + Vector((5,5,5))
+         
+
+def snap_rotation(source, target):
+    Ms = source.id_data.convert_space(
+        pose_bone=source,
+        matrix=source.matrix,
+        from_space='POSE',
+        )
+    Mt = target.id_data.convert_space(
+        pose_bone=target,
+        matrix=target.matrix,
+        from_space='POSE',
+        ) 
+         
+    _, q, _ = Ms.decompose()
+    t, _, s = Mt.decompose()
+    M = (
+        Matrix.Translation(t) @
+        q.to_matrix().to_4x4() @ 
+        Matrix.Diagonal(s.to_4d())
+        )
+    target.matrix = target.id_data.convert_space(
+        pose_bone=target,
+        matrix=M,
+        to_space='POSE',
+        )    
+
+def NormalizeBones(Rig,ArrayNewBones):
+    
+
+    bpy.ops.object.mode_set(mode='POSE')
+    
+    for x in range(1, 16):
+        print(ArrayNewBones[x])
+        if ArrayNewBones[x]:
+            #print(x,"R ", R_Bones[x], "A",Rig.pose.bones[ArrayNewBones[x]],ArrayNewBones[x])
+            snap_rotation(
+               R_Bones[x],
+               Rig.pose.bones[ArrayNewBones[x]]
+            )
+            bone = Rig.pose.bones[ArrayNewBones[x]]
+            bone.scale = Vector( (1, 1, 1) )
+            bone.keyframe_insert(data_path='rotation_quaternion',frame=0)
+            bone.keyframe_insert(data_path="location", frame=0)
+            bone.keyframe_insert(data_path="scale", frame=0)
+
+def SetToBone(Rig): 
+    
+    bpy.ops.object.mode_set(mode='POSE')    
+    for x in range(1, 16):
+        
+        y = 15 - x
+        if ArrayCloudBones[y]:
+            snap_rotation( 
+               Rig.pose.bones[ArrayCloudBones[y]],
+               R_Bones[y]
+            ) 
+  
+#Rig to get frames from
+def SetKeyFrames(Rig, FrameStart,FrameEnd):  
+    
+    for f in range(FrameStart, FrameEnd):
+       
+        bpy.context.view_layer.update()
+        scene.frame_current = f
+
+        bpy.context.view_layer.update()
+            
+       
+        for x in range(1, 16):
+            bpy.context.view_layer.update()
+            SetToBone(Rig)
+            
+        bpy.context.view_layer.update()
+        SetToBone(Rig)
+            
+        bpy.context.view_layer.update()
+        SetToBone(Rig)   
+            
+        bpy.context.view_layer.update()
+        SetToBone(Rig) 
+            
+        bpy.context.view_layer.update()
+        SetToBone(Rig) 
+            
+        bpy.context.view_layer.update()
+        SetToBone(Rig) 
+            
+        bpy.context.view_layer.update()
+        SetToBone(Rig) 
+            
+        bpy.context.view_layer.update()
+        SetToBone(Rig) 
+            
+        for bone in R_Bones:
+            bone.scale = Vector( (1, 1, 1) )
+            bone.keyframe_insert(data_path='rotation_quaternion',frame=f)
+            bone.keyframe_insert(data_path="location", frame=f)
+            bone.keyframe_insert(data_path="scale", frame=f)
+            #bone.scale = Vector( (1, 1, 1) )
+            bpy.context.view_layer.update()
+
+
+
+def defaultRoblox():    
+    
+    for bone in R_Bones:
+        print("Roblox Bone: " ,bone)
+        bpy.data.objects["Rigr"].select_set(True)
+        bpy.ops.object.mode_set(mode='POSE')
+        bone.rotation_quaternion[0] = 1
+        bone.rotation_quaternion[1] = 0
+        bone.rotation_quaternion[2] = 0
+        bone.rotation_quaternion[3] = 0
+        
+        bone.location[0] = 0
+        bone.location[1] = 0
+        bone.location[2] = 0
+        
+        bone.scale = Vector( (1, 1, 1) )
+        bone.keyframe_insert(data_path='rotation_quaternion',frame=0)
+        bone.keyframe_insert(data_path="location", frame=0)
+        bone.keyframe_insert(data_path="scale", frame=0)
+        scene.frame_current = 0
+        bpy.context.view_layer.update()
+
+def process(ToFrame):
+    
+    bpy.context.view_layer.update()
+    scene.frame_current = 0
+        
+    bpy.context.view_layer.update()
+    CopyBones(bpy.context.scene.objects['Armature'] , bpy.context.scene.objects['Armature.001'] )
+    AddBones(bpy.context.scene.objects['Armature.001'],ArrayCloudBones,ArrayCloudBonesOrig)  
+      
+    bpy.context.view_layer.update()
+    CopyBones(bpy.context.scene.objects['Armature'] , bpy.context.scene.objects['Armature.001'] )    
+    NormalizeBones(bpy.context.scene.objects['Armature.001'],ArrayCloudBones)
+    
+    bpy.context.view_layer.update()
+    SetKeyFrames(bpy.context.scene.objects['Armature.001'], 0,ToFrame)
+        
+    #delete    
+    objs = bpy.data.objects
+    objs.remove(objs['Armature.001'], do_unlink=True) 
+
+UploadedObj = None
+found = 0
+def importfbx(file):
+    
+    path1 = "C:\\Users\\AJ\\TestAnimations\\Assets\\Frank_Slash_Pack\\Assets\\Animations\\Frank_SlashPack_Assassin\\FBX Animation\\In_Place\\"
+    
+    path2 = "C:\\Users\\AJ\\TestAnimations\\Assets\\Frank_Slash_Pack\Assets\\Animations\\Frank_SlashPack_Assassin\\FBX Animation\\Root_Motion\\"
+    
+    path3 = "C:\\Users\\AJ\\TestAnimations\\Assets\\Frank_Slash_Pack\Assets\\Animations\\Frank_SlashPack_Assassin\\FBX Animation\\Root_Motion_8Way\\"
+    
+    model_id1=path1.split("\\")[-1].split("_")[-1]
+    model_id2=path2.split("\\")[-1].split("_")[-1]
+    model_id3=path3.split("\\")[-1].split("_")[-1]
+    
+    dir1 = (path1+""+model_id1 +file)
+    dir2 = (path2+""+model_id2 +file)
+    dir3 = (path3+""+model_id3 +file)
+    
+    found = 0
+    UploadedObj = None
+    #"C:\Users\AJ\TestAnimations\Assets\Frank_Slash_Pack\Assets\Animations\Frank_SlashPack_Katana\FBX_Animation\Root_Motion\Frank_RPG_Katana_Evade_B.FBX"
+    #bpy.ops.import_scene.fbx(filepath="F:/Blender/2019-04-09-S.fbx")
+    if os.path.exists(dir1):
+        print("Dir Found 1")
+        bpy.ops.import_scene.fbx(filepath=dir1)
+        UploadedObj = bpy.context.scene.objects['Armature.001']   
+        found = 1
+    elif os.path.exists(dir2):
+        print("Dir Found 2")
+        bpy.ops.import_scene.fbx(filepath=dir2)
+        UploadedObj = bpy.context.scene.objects['Armature.001']  
+        found = 1
+    elif os.path.exists(dir3):
+        print("Dir Found 3")
+        bpy.ops.import_scene.fbx(filepath=dir3)
+        UploadedObj = bpy.context.scene.objects['Armature.001'] 
+        found = 1
+
+    return found
+    
+def NewAction(name):
+    
+    
+    ob = RobloxRig
+    
+    ob.animation_data.action = bpy.data.actions.get("__RigAction")
+    bpy.context.view_layer.update()
+    
+    action = bpy.data.actions.new(name)
+    
+    ob.animation_data_create()
+    ob.animation_data.action = action
+    bpy.data.actions[name].use_fake_user = True
+
+    bpy.context.view_layer.update()
+    
+    #bpy.data.objects["__Rig"].select_set(True)
+    #bpy.ops.object.mode_set(mode='POSE')    
+    #bpy.ops.action.new()
+    #bpy.data.actions["Run"].name = "Run"
+
+def ReadFile(file):
+    path1 = "C:\\Users\\AJ\\TestAnimations\\Assets\\Frank_Slash_Pack\\Documentation\\"
+    model_id1=path1.split("\\")[-1].split("_")[-1]
+    dir1 = (path1+""+model_id1 +file)
+    
+    file_data = [] # create an empty list
+    animation_data = {} # create an empty dictionary
+
+    # read the file
+    with open(dir1) as f:
+        content = f.readlines()
+        
+        for line in content:
+            # store the line as list in file_data
+            file_data.append(line)
+            #print(line)
+            
+    return file_data    
+
+def ReadAndCopy(file):
+    
+    file_data = ReadFile(file)
+    
+    for s in file_data:
+        name = s.strip()+ '.FBX'
+
+        f = importfbx(name)
+        print(name)
+        
+        if f == 1:
+            NewAction(name)
+            process(300)
+
+        #print(s)
+    
+if __name__ == "__main__":
+    context = bpy.context
+    scene = context.scene
+    
+    ReadAndCopy("Frank_Assassin.txt")
+    
+    
+    
+    
+   
+   
