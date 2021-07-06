@@ -64,7 +64,7 @@ The goal was to copy the unity fbx animations to RobloxRig. This was done by the
                     
 5. Create new bones in "Armature.001" that is a copy of RobloxRig:
 
-      def AddBones(Rig,ArrayName,ArrayNameOrig):
+        def AddBones(Rig,ArrayName,ArrayNameOrig):
 
           bpy.ops.object.mode_set(mode='EDIT', toggle=False)
 
@@ -82,6 +82,7 @@ The goal was to copy the unity fbx animations to RobloxRig. This was done by the
                   eb.tail = Rig.data.edit_bones[ArrayCloudBonesOrig[x]].head + Vector((5,5,5))
 
 These bones will represent the normal position and rotation of "RobloxRig". As these bones change so will the "RobloxRig" bones with further code. These new bones also do not affect "Armature.001" animation and are just reference points . For this to work you need to know the bones in "Armature.001" and "RobloxRig"
+
           ArrayCloudBonesOrig[1] = "pelvis"
           ArrayCloudBonesOrig[2] = "thigh_r"
           ArrayCloudBonesOrig[3] = "calf_r"
